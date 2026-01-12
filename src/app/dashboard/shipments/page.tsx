@@ -2,6 +2,8 @@ import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import MobileShipmentList from '@/components/MobileShipmentList'
 import StatusBadge from '@/components/StatusBadge'
+export const dynamic = 'force-dynamic';
+
 
 export default async function ShipmentsPage() {
   const { data, error } = await supabase
