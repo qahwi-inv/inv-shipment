@@ -4,11 +4,14 @@ import MobileShipmentList from '@/components/MobileShipmentList'
 import StatusBadge from '@/components/StatusBadge'
 
 export default async function ShipmentsPage() {
-  const { data: shipments = [], error } = await supabase
+  const { data, error } = await supabase
     .from('shipments')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(200)
+
+  // default to empty array if data is null
+  const shipments = data ?? []
 
   if (error) {
     return <div className="p-8 text-red-600 text-center">حدث خطأ في جلب البيانات</div>
