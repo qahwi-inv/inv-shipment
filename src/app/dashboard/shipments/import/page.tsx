@@ -191,78 +191,95 @@ export default function ImportShipmentsPage() {
           tabIndex={0}
         >
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-48">رقم الشحنة *</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">اسم المستلم</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">رقم الجوال</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">المدينة</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">العنوان</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-32">المبلغ</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-20">حذف</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {rows.map((row, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-4 py-2">
-                      <input
-                        value={row.waybill}
-                        onChange={e => updateCell(index, 'waybill', e.target.value)}
-                        placeholder="مطلوب"
-                        className="w-full border rounded px-2 py-1 focus:border-blue-500 focus:outline-none"
-                      />
-                    </td>
-                    <td className="px-4 py-2">
-                      <input
-                        value={row.receiver_name}
-                        onChange={e => updateCell(index, 'receiver_name', e.target.value)}
-                        className="w-full border rounded px-2 py-1"
-                      />
-                    </td>
-                    <td className="px-4 py-2">
-                      <input
-                        value={row.receiver_phone}
-                        onChange={e => updateCell(index, 'receiver_phone', e.target.value)}
-                        className="w-full border rounded px-2 py-1"
-                      />
-                    </td>
-                    <td className="px-4 py-2">
-                      <input
-                        value={row.city}
-                        onChange={e => updateCell(index, 'city', e.target.value)}
-                        className="w-full border rounded px-2 py-1"
-                      />
-                    </td>
-                    <td className="px-4 py-2">
-                      <input
-                        value={row.address}
-                        onChange={e => updateCell(index, 'address', e.target.value)}
-                        className="w-full border rounded px-2 py-1"
-                      />
-                    </td>
-                    <td className="px-4 py-2">
-                      <input
-                        type="text"
-                        value={row.cod_amount}
-                        onChange={e => updateCell(index, 'cod_amount', e.target.value)}
-                        className="w-full border rounded px-2 py-1 text-right"
-                      />
-                    </td>
-                    <td className="px-4 py-2 text-center">
-                      <button
-                        onClick={() => removeRow(index)}
-                        className="text-red-600 hover:text-red-800 text-sm"
-                        disabled={rows.length === 1}
-                      >
-                        ×
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="overflow-x-auto">
+  <table className="min-w-[1000px] divide-y divide-gray-200">
+    <thead className="bg-gray-100">
+      <tr>
+        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-56">
+          رقم الشحنة *
+        </th>
+        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-48">
+          اسم المستلم
+        </th>
+        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-40">
+          رقم الجوال
+        </th>
+        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-48">
+          المدينة
+        </th>
+        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-72">
+          العنوان
+        </th>
+        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-32">
+          المبلغ
+        </th>
+        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-20">
+          حذف
+        </th>
+      </tr>
+    </thead>
+    <tbody className="divide-y divide-gray-200">
+      {rows.map((row, index) => (
+        <tr key={index} className="hover:bg-gray-50">
+          <td className="px-4 py-2">
+            <input
+              value={row.waybill}
+              onChange={e => updateCell(index, 'waybill', e.target.value)}
+              placeholder="مطلوب"
+              className="w-full border rounded px-2 py-1 focus:border-blue-500 focus:outline-none"
+            />
+          </td>
+          <td className="px-4 py-2">
+            <input
+              value={row.receiver_name}
+              onChange={e => updateCell(index, 'receiver_name', e.target.value)}
+              className="w-full border rounded px-2 py-1"
+            />
+          </td>
+          <td className="px-4 py-2">
+            <input
+              value={row.receiver_phone}
+              onChange={e => updateCell(index, 'receiver_phone', e.target.value)}
+              className="w-full border rounded px-2 py-1"
+            />
+          </td>
+          <td className="px-4 py-2">
+            <input
+              value={row.city}
+              onChange={e => updateCell(index, 'city', e.target.value)}
+              className="w-full border rounded px-2 py-1"
+            />
+          </td>
+          <td className="px-4 py-2">
+            <input
+              value={row.address}
+              onChange={e => updateCell(index, 'address', e.target.value)}
+              className="w-full border rounded px-2 py-1"
+            />
+          </td>
+          <td className="px-4 py-2">
+            <input
+              type="text"
+              value={row.cod_amount}
+              onChange={e => updateCell(index, 'cod_amount', e.target.value)}
+              className="w-full border rounded px-2 py-1 text-right"
+            />
+          </td>
+          <td className="px-4 py-2 text-center">
+            <button
+              onClick={() => removeRow(index)}
+              className="text-red-600 hover:text-red-800 text-sm"
+              disabled={rows.length === 1}
+            >
+              ×
+            </button>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
           </div>
         </div>
 
