@@ -5,6 +5,12 @@ export async function POST(request: Request) {
   try {
     const { nclNumber, rows } = await request.json()
 
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'يجب تسجيل الدخول أو بدء تجربة' }, { status: 401 })
+    }
+
     if (!Array.isArray(rows) || rows.length === 0) {
       return NextResponse.json({ error: 'لا توجد بيانات للاستيراد' }, { status: 400 })
     }
@@ -19,6 +25,7 @@ export async function POST(request: Request) {
         cod_amount: Number((row[5] || '0').replace(/[^0-9.]/g, '')) || 0,
         ncl_number: nclNumber,
         status: 'new' as const,
+        user_id: user.id  // ← THIS LINE WAS MISSING → ADD IT HERE
       }))
       .filter(r => r.waybill !== '')
 

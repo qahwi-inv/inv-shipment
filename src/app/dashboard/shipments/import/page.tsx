@@ -1,6 +1,6 @@
-// app/dashboard/shipments/import/page.tsx
 'use client'
 
+import { supabase } from '@/lib/supabase'
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -10,7 +10,7 @@ type ShipmentRow = {
   receiver_phone: string
   city: string
   address: string
-  cod_amount: string  // keep as string during editing
+  cod_amount: string
 }
 
 const defaultRow: ShipmentRow = {
@@ -30,25 +30,17 @@ export default function ImportShipmentsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
-  // Add new empty row
-  const addRow = () => {
-    setRows([...rows, { ...defaultRow }])
-  }
-
-  // Remove row
+  const addRow = () => setRows([...rows, { ...defaultRow }])
   const removeRow = (index: number) => {
     if (rows.length === 1) return
     setRows(rows.filter((_, i) => i !== index))
   }
-
-  // Update cell value
   const updateCell = (index: number, field: keyof ShipmentRow, value: string) => {
     const newRows = [...rows]
     newRows[index] = { ...newRows[index], [field]: value }
     setRows(newRows)
   }
 
-  // Paste from clipboard (Excel style)
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault()
     const pasteData = e.clipboardData.getData('Text')
@@ -71,90 +63,85 @@ export default function ImportShipmentsPage() {
   }
 
   const handleImport = async () => {
-    const validRows = rows.filter(r => r.waybill.trim() !== '')
+  const validRows = rows.filter(r => r.waybill.trim() !== '')
 
-    if (validRows.length === 0) {
-      setMessage('لا توجد شحنات صالحة للاستيراد')
-      setStatus('error')
-      return
-    }
-
-    setStatus('loading')
-    setMessage('جاري الاستيراد...')
-
-    try {
-      const res = await fetch('/api/shipments/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nclNumber: nclNumber.trim() || 'غير محدد',
-          rows: validRows.map(r => [
-            r.waybill,
-            r.receiver_name,
-            r.receiver_phone,
-            r.city,
-            r.address,
-            r.cod_amount,
-          ]),
-        }),
-      })
-
-      const result = await res.json()
-
-      if (!res.ok) throw new Error(result.error || 'فشل الاستيراد')
-
-      setStatus('success')
-      setMessage(`تم استيراد ${result.count || validRows.length} شحنة بنجاح`)
-      
-      setTimeout(() => {
-        router.push('/dashboard/shipments')
-      }, 1800)
-    } catch (err: any) {
-      setStatus('error')
-      setMessage(err.message || 'حدث خطأ أثناء الاستيراد')
-    }
+  if (validRows.length === 0) {
+    setMessage('لا توجد شحنات صالحة للاستيراد')
+    setStatus('error')
+    return
   }
+
+  setStatus('loading')
+  setMessage('جاري الاستيراد...')
+
+  try {
+    // 1️⃣ Ensure anonymous auth
+    let { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      const { error } = await supabase.auth.signInAnonymously()
+      if (error) throw error
+
+      const refreshed = await supabase.auth.getUser()
+      user = refreshed.data.user
+      if (!user) throw new Error('فشل تسجيل الدخول')
+    }
+
+    console.log('Inserting as user:', user.id)
+
+    // 2️⃣ Build records
+    const records = validRows.map(r => ({
+      waybill: r.waybill.trim(),
+      receiver_name: r.receiver_name || null,
+      receiver_phone: r.receiver_phone || null,
+      city: r.city || null,
+      address: r.address || null,
+      cod_amount: Number(r.cod_amount.replace(/[^0-9.]/g, '')) || 0,
+      ncl_number: nclNumber.trim() || 'غير محدد',
+      status: 'new',
+      user_id: user.id, // optional if RLS uses auth.uid()
+    }))
+
+    // 3️⃣ Insert DIRECTLY from client
+    const { error } = await supabase
+      .from('shipments')
+      .insert(records)
+
+    if (error) throw error
+
+    setStatus('success')
+    setMessage(`تم استيراد ${records.length} شحنة بنجاح`)
+
+    setTimeout(() => {
+      router.push('/dashboard/shipments')
+    }, 1800)
+
+  } catch (err: any) {
+    console.error(err)
+    setStatus('error')
+    setMessage(err.message || 'حدث خطأ أثناء الاستيراد')
+  }
+}
+
 
   return (
     <div className="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
-<div className="max-w-6xl mx-auto mb-6 flex items-center gap-4 flex-row-reverse justify-between">
-  <button
-    onClick={() => router.back()}
-    className="
-      flex items-center justify-center 
-      w-10 h-10 
-      bg-black 
-      rounded-full 
-      hover:bg-gray-800 
-      transition-colors
-    "
-    aria-label="العودة"
-  >
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      className="h-6 w-6 text-white" 
-      fill="none" 
-      viewBox="0 0 24 24" 
-      stroke="currentColor"
-      strokeWidth={2.5}
-    >
-      <path 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        d="M15 19l-7-7 7-7"   // ← this arrow points left (correct for back in RTL)
-      />
-    </svg>
-  </button>
+        <div className="max-w-6xl mx-auto mb-6 flex items-center gap-4 flex-row-reverse justify-between">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center justify-center w-10 h-10 bg-black rounded-full hover:bg-gray-800 transition-colors"
+            aria-label="العودة"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h1 className="text-2xl sm:text-3xl font-bold">استيراد قائمة شحنات NCL</h1>
+        </div>
 
-  <h1 className="text-2xl sm:text-3xl font-bold">
-    استيراد قائمة شحنات NCL
-  </h1>
-</div>
         <div className="mb-6 bg-white p-5 rounded-lg shadow-sm">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            رقم قائمة NCL (اختياري)
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">رقم قائمة NCL (اختياري)</label>
           <input
             type="text"
             value={nclNumber}
@@ -165,139 +152,64 @@ export default function ImportShipmentsPage() {
         </div>
 
         <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="text-sm text-gray-600">
-            الصق من Excel أو أدخل الشحنات يدوياً
-          </div>
+          <div className="text-sm text-gray-600">الصق من Excel أو أدخل الشحنات يدوياً</div>
           <div className="flex gap-3">
-            <button
-              onClick={addRow}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-            >
-              + إضافة سطر
-            </button>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm"
-            >
-              استيراد من ملف (قريباً)
-            </button>
+            <button onClick={addRow} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">+ إضافة سطر</button>
+            <button onClick={() => fileInputRef.current?.click()} className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm">استيراد من ملف (قريباً)</button>
             <input type="file" ref={fileInputRef} className="hidden" />
           </div>
         </div>
 
-        <div 
-          className="bg-white rounded-lg shadow overflow-hidden border border-gray-200"
-          onPaste={handlePaste}
-          tabIndex={0}
-        >
+        <div className="bg-white rounded-lg shadow overflow-hidden border border-gray-200" onPaste={handlePaste} tabIndex={0}>
           <div className="overflow-x-auto">
-            <div className="overflow-x-auto">
-  <table className="min-w-[1000px] divide-y divide-gray-200">
-    <thead className="bg-gray-100">
-      <tr>
-        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-56">
-          رقم الشحنة *
-        </th>
-        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-48">
-          اسم المستلم
-        </th>
-        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-40">
-          رقم الجوال
-        </th>
-        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-48">
-          المدينة
-        </th>
-        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-72">
-          العنوان
-        </th>
-        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-32">
-          المبلغ
-        </th>
-        <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-20">
-          حذف
-        </th>
-      </tr>
-    </thead>
-    <tbody className="divide-y divide-gray-200">
-      {rows.map((row, index) => (
-        <tr key={index} className="hover:bg-gray-50">
-          <td className="px-4 py-2">
-            <input
-              value={row.waybill}
-              onChange={e => updateCell(index, 'waybill', e.target.value)}
-              placeholder="مطلوب"
-              className="w-full border rounded px-2 py-1 focus:border-blue-500 focus:outline-none"
-            />
-          </td>
-          <td className="px-4 py-2">
-            <input
-              value={row.receiver_name}
-              onChange={e => updateCell(index, 'receiver_name', e.target.value)}
-              className="w-full border rounded px-2 py-1"
-            />
-          </td>
-          <td className="px-4 py-2">
-            <input
-              value={row.receiver_phone}
-              onChange={e => updateCell(index, 'receiver_phone', e.target.value)}
-              className="w-full border rounded px-2 py-1"
-            />
-          </td>
-          <td className="px-4 py-2">
-            <input
-              value={row.city}
-              onChange={e => updateCell(index, 'city', e.target.value)}
-              className="w-full border rounded px-2 py-1"
-            />
-          </td>
-          <td className="px-4 py-2">
-            <input
-              value={row.address}
-              onChange={e => updateCell(index, 'address', e.target.value)}
-              className="w-full border rounded px-2 py-1"
-            />
-          </td>
-          <td className="px-4 py-2">
-            <input
-              type="text"
-              value={row.cod_amount}
-              onChange={e => updateCell(index, 'cod_amount', e.target.value)}
-              className="w-full border rounded px-2 py-1 text-right"
-            />
-          </td>
-          <td className="px-4 py-2 text-center">
-            <button
-              onClick={() => removeRow(index)}
-              className="text-red-600 hover:text-red-800 text-sm"
-              disabled={rows.length === 1}
-            >
-              ×
-            </button>
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
-
+            <table className="min-w-[1000px] divide-y divide-gray-200">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-56">رقم الشحنة *</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-48">اسم المستلم</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-40">رقم الجوال</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-48">المدينة</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-72">العنوان</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-32">المبلغ</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 w-20">حذف</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {rows.map((row, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="px-4 py-2">
+                      <input value={row.waybill} onChange={e => updateCell(index, 'waybill', e.target.value)} placeholder="مطلوب" className="w-full border rounded px-2 py-1 focus:border-blue-500 focus:outline-none" />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input value={row.receiver_name} onChange={e => updateCell(index, 'receiver_name', e.target.value)} className="w-full border rounded px-2 py-1" />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input value={row.receiver_phone} onChange={e => updateCell(index, 'receiver_phone', e.target.value)} className="w-full border rounded px-2 py-1" />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input value={row.city} onChange={e => updateCell(index, 'city', e.target.value)} className="w-full border rounded px-2 py-1" />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input value={row.address} onChange={e => updateCell(index, 'address', e.target.value)} className="w-full border rounded px-2 py-1" />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input type="text" value={row.cod_amount} onChange={e => updateCell(index, 'cod_amount', e.target.value)} className="w-full border rounded px-2 py-1 text-right" />
+                    </td>
+                    <td className="px-4 py-2 text-center">
+                      <button onClick={() => removeRow(index)} className="text-red-600 hover:text-red-800 text-sm" disabled={rows.length === 1}>×</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
         <div className="mt-6 flex flex-col sm:flex-row gap-4">
-          <button
-            onClick={handleImport}
-            disabled={status === 'loading'}
-            className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium"
-          >
+          <button onClick={handleImport} disabled={status === 'loading'} className="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium">
             {status === 'loading' ? 'جاري الاستيراد...' : 'استيراد جميع الشحنات'}
           </button>
-          
-          <button
-            onClick={() => router.back()}
-            className="flex-1 bg-gray-300 text-gray-800 py-3 px-6 rounded-lg hover:bg-gray-400 font-medium"
-          >
-            إلغاء
-          </button>
+          <button onClick={() => router.back()} className="flex-1 bg-gray-300 text-gray-800 py-3 px-6 rounded-lg hover:bg-gray-400 font-medium">إلغاء</button>
         </div>
 
         {message && (
@@ -310,6 +222,35 @@ export default function ImportShipmentsPage() {
           </div>
         )}
       </div>
+      <button
+  onClick={async () => {
+    try {
+      // Ensure logged in
+      let { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        await supabase.auth.signInAnonymously();
+        const refreshed = await supabase.auth.getUser();
+        user = refreshed.data.user;
+      }
+
+      console.log('Inserting as user:', user?.id);
+
+      const { error } = await supabase
+        .from('test_inserts')
+        .insert({ name: 'Test Row ' + Date.now() });
+
+      if (error) throw error;
+
+      alert('Test insert SUCCESS!');
+    } catch (err: any) {
+      console.error(err);
+      alert('Test insert FAILED: ' + err.message);
+    }
+  }}
+  className="mt-4 px-6 py-3 bg-purple-600 text-white rounded-lg"
+>
+  Test Minimal Insert (click me)
+</button>
     </div>
   )
 }
