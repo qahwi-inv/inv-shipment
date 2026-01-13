@@ -16,8 +16,9 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://Qahwi.com'),
   
   title: {
-    default: 'قهوي |إدارة وتصفية تحصيلات الدفع عند الاستلام| برنامج إدارة الشحنات والتوصيل في السعودية',
-    template: '%s | قهوي – نظام متكامل لإدارة الشحنات'
+    default: 'COD قهوي |إدارة وتصفية تحصيلات الدفع عند الاستلام | نظام ادراة الشحنات والتحصيل',
+    
+    template: ' قهوي | نظام متكامل لإدارة الشحنات'
   },
   
   description: 'نظام احترافي لإدارة الشحنات، توزيع المندوبين، متابعة التحصيل وادارة المبيعات COD، تقليل الإرجاع RTO، متوافق مع ناقل وشركات الشحن السعودية ',
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
   authors: [{ name: 'Qahwi', url: 'https://Qahwi.com' }],
   
   openGraph: {
-    title: 'قهوي - إدارة شحنات ومبيعات احترافية في السعودية',
+    title: 'COD قهوي - لإدارة الشحنات والمبيعات والتحصيل',
     description: 'حل متكامل لمتابعة الشحنات، توزيع المندوبين وتحصيل المدفوعات',
     url: 'https://qahwi.com',
     siteName: 'قهوي',
@@ -49,7 +50,7 @@ export const metadata: Metadata = {
   
   twitter: {
     card: 'summary_large_image',
-    title: 'قهوي | برنامج إدارة الشحنات والمبيعات',
+    title: 'COD قهوي | برنامج إدارة الشحنات والمبيعات والتحصيل',
     description: 'نظام متكامل لإدارة التوصيل والتحصيل في السعودية',
     images: ['/og-image-1200x630-ar.png'],
   },
